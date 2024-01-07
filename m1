@@ -1,0 +1,244 @@
+'''
+m*n 매트릭스 클래스를 직접 구현한다.
+
+기능
+Cal :
+    곱연산(내적)
+    합연산
+
+Row Reduced Form
+
+Solution for x :
+    if invertible -> x = A^-1 * b
+    not -> Complete Solution x = x_n + x_p
+        -> Least Square Solution:
+                Projection :
+                    projection onto a line vector_a
+                    projection onto a column space, vector_p, projection matrix P, x_hat
+                        if Orthogonal Matrix : ( Q^T = Q^-1 )
+                            x_hat = Q^T * b
+                            q_1, q_2, q_3, ... q_n - Gram-Schmidt process
+                    minimizing ||e||^2 line
+
+Eigenvalue and Eigenvector :
+    solving eigenvalue, eigenvector
+
+명제 1)
+    m != n 인가?
+        True :
+            곱연산, 합연산만 가능하다.
+            Complete Solution을 구할 수 있다.
+            Nullspace, Left Nullspace를 구할 수 있다.
+        False :
+            Invertible 하다면 A^-1 를 구할 수 있다
+            Not invertible 하다면 1명제 True와 같은 기능을 가진다.
+
+'''
+import math
+class Matrix:
+    def __init__(self, lst= None, reno=0):
+        self.reno = reno
+        self.upmatrix = []
+        self.pivots = []
+        if lst:
+            self.matrix = [*lst]
+            self.m = len(lst)
+            try:
+                self.n = len(lst[0])
+            except:
+                self.m = 1
+                self.n = len(lst)
+                self.matrix = [[*lst]]
+        else:
+            self.matrix = []
+
+    def add(self, other):
+        if self.m == other.m: # 합 연산시 Row Space 는 같아야 한다.
+            if self.n == other.n: # 합 연산시 Column Space는 같아야 한다.
+                new_matrix = []
+                for m in range(self.m):
+                    tmp_row = []
+                    for n in range(self.n):
+                        tmp_row.append(self.matrix[m][n] + other.matrix[m][n])
+                    new_matrix.append(tmp_row)
+                return new_matrix
+            else:
+                print(f'ADD ERROR : Column Space가 서로 일치하지 않습니다. {self.n} != {other.n}')
+        else:
+            print(f'ADD ERROR : Row Space가 서로 일치하지 않습니다. {self.m} != {other.m}')
+
+    def __add__(self, other): # 합 연산 기능
+        if self.m == other.m: # 합 연산시 Row Space 는 같아야 한다.
+            if self.n == other.n: # 합 연산시 Column Space는 같아야 한다.
+                new_matrix = self.add(other.matrix)
+
+                return Matrix(new_matrix)
+            else:
+                return f'ADD ERROR : Column Space가 서로 일치하지 않습니다. {self.n} != {other.n}'
+        else:
+            return f'ADD ERROR : Row Space가 서로 일치하지 않습니다. {self.m} != {other.m}'
+
+    def mul(self, other):
+        if type(other) == int or type(other) == float:
+            new_matrix = []
+            for i in range(self.m):
+                tmp_row = []
+                for j in range(self.n):
+                    tmp_row.append(self.matrix[i][j] * other)
+                new_matrix.append(tmp_row)
+            return new_matrix
+        elif type(other) == type(self):
+            if self.n == other.m: # 곱 연산시 필요한 조건
+                new_matrix = []
+                for k in range(self.m): # when 2*2 * 2*2
+                    tmp_row = []
+                    for j in range(other.n):
+                        tmp = 0
+                        for i in range(self.n):
+                            tmp += self.matrix[k][i] * other.matrix[i][j]
+                        tmp_row.append(tmp)
+                    new_matrix.append(tmp_row)
+                return new_matrix
+            else:
+                print(f'MUL ERROR : 곱하기 위한 조건이 맞지 않습니다. 왼쪽의 Column Space {self.n} != 오른쪽의 Row Space {other.m}')
+        else:
+            print(f'Syntax ERROR: 올바르지 않은 피연산자 {type(other)}')
+
+    def __mul__(self, other): # 곱 연산 기능
+        if type(other) == int or type(other) == float:
+            new_matrix = self.mul(other)
+            return Matrix(new_matrix)
+        elif type(other) == type(self):
+            if self.n == other.m: # 곱 연산시 필요한 조건
+                new_matrix = self.mul(other)
+                return Matrix(new_matrix)
+            else:
+                return f'MUL ERROR : 곱하기 위한 조건이 맞지 않습니다. 왼쪽의 Column Space {self.n} != 오른쪽의 Row Space {other.m}'
+        else:
+            return f'Syntax ERROR: 올바르지 않은 피연산자 {type(other)}'
+
+    def __truediv__(self, other):
+        if type(other) == int:
+            new_matrix = []
+            for i in range(self.m):
+                tmp_row = []
+                for j in range(self.n):
+                    if (self.matrix[i][j] / other == int(self.matrix[i][j])): # 사용자 입장 가독성 증진
+                        tmp_row.append(self.matrix[i][j] // other)
+                    else:
+                        tmp_row.append(self.matrix[i][j] / other)
+                new_matrix.append(tmp_row)
+            return new_matrix
+        else:
+            return f'지원하지 않는 타입'
+
+    def __sub__(self, other):
+        if type(other) == type(self):
+            new_matrix = []
+            for i in range(self.m):
+                tmp_row = []
+                for j in range(self.n):
+                    tmp_row.append(self.matrix[i][j] - other.matrix[i][j])
+                new_matrix.append(tmp_row)
+            return new_matrix
+
+    def __eq__(self, other):
+        is_True = True
+        if self.m == other.m and self.n == other.n:
+            for i in range(self.m):
+                for j in range(self.n):
+                    if self.matrix[i][j] != other.matrix[i][j]:
+                        is_True = False
+        else:
+            is_True = False
+        return is_True
+
+    def making_uppertriangle(self, matrix):  # k는 몇번째 row부터 시작할지
+        self.upmatrix.append(matrix[0])
+        new_matrix = []
+        '''
+        시작할 떄 마다 들어온 매트릭스의 0번째 row를 upper_matrix에 저장한다.
+        0-th row의 pivot을 구하고, self.pivots 에 넣는다.
+        0-th row의 pivot이 있는 위치를 칼럼변수에 저장한 뒤, 1-th row부터 마지막 row 까지의 칼럼변수 위치의 보정값인 div_num을 구한다.
+        div_num을 0-th row의 모든 요소에 곱한 뒤 1-th row부터 마지막 row까지 모두 뺀다.
+        뺀 row를 new_matrix에 추가한다.
+        new_matrix가 하나 밖에 없는지 확인한다.
+        하나가 아니라면 해당 작업을 반복한다.
+        pivot이 존재하지 않다면 ( 0 이라면 ), rank가 확정되고, 작업을 중지한다. - upper_matrix에 현재의 matrix를 추가한다.
+        new_matrix가 하나라면 new_matrix를 upper_matrix에 추가하고 리턴한다.
+        '''
+        # 1. k-th row의 PIVOT 구하기
+        pivot_col = 0  # 칼럼변수
+        is_nonpivot = True
+        for i in matrix[0]:
+            if i != 0:
+                self.pivots.append(i)
+                pivot = i
+                is_nonpivot = False
+                break
+            pivot_col += 1  # 0일 때 칼럼변수 1씩 추가
+        if is_nonpivot:
+            self.rank = len(self.pivots)  # non-pivot일 때 rank 확정
+            for stop_loop_matrix in matrix[1:]:  # 이미 추가된 첫째줄을 제외하고 추가
+                self.upmatrix.append(stop_loop_matrix)
+            return self.upmatrix
+
+        # 2. div_num 구하고, 보정한 뒤 빼기.
+        for i in range(1, len(matrix)):
+            div_num = matrix[i][pivot_col] / pivot  # div_num 구하기
+            sub_row = []
+            for m in matrix[0]:
+                sub_row.append(m * div_num)
+            tmp_row = []
+            for num, j in enumerate(matrix[i]):
+                tmp_row.append(j - sub_row[num])
+            new_matrix.append(tmp_row)
+
+        if len(new_matrix) == 1:  # new_matrix가 하나 밖에 안남았을 때
+            self.upmatrix.append(*new_matrix)
+            return self.upmatrix
+        else:  # 아닐 때, 무한 반복
+            return self.making_uppertriangle(new_matrix)
+
+    def upper_triangle(self, reno=0):
+        if self.m > 1:
+            echelon_form = sorted(self.matrix, key=lambda x: [abs(x[i]) == 0 for i in range(self.n)])  # SETTING
+            new_upmatrix = self.making_uppertriangle(echelon_form)
+            new_matrix = []
+            for m in range(len(new_upmatrix)):
+                tmp_row = []
+                for n in range(len(new_upmatrix[0])):
+                    if (new_upmatrix[m][n] == int(new_upmatrix[m][n])):
+                        tmp_row.append(int(new_upmatrix[m][n]))
+                    else:
+                        tmp_row.append(new_upmatrix[m][n])
+                new_matrix.append(tmp_row)
+            new_matrix = sorted(new_matrix, key=lambda x: [abs(x[i]) == 0 for i in range(self.n)])
+            return Matrix(new_matrix, reno)
+
+    def __len__(self):
+        return self.m * self.n
+
+    def __repr__(self):
+        if self.reno == 0:
+            return f'{self.matrix}'
+        if self.reno == 1:
+            represent_matrix = '('
+            for i, _ in enumerate(self.matrix):
+                represent_matrix += f"{_}"
+                if i != len(self.matrix)-1:
+                    represent_matrix += "\n"
+            return f'{represent_matrix})'
+        else:
+            return f'reno: {self.reno} is invalid'
+
+A = Matrix([[1,4],[1,1]], 0)
+B = Matrix([[2,1],[1,2]])
+C = Matrix([[-2,1,1,1,0,1,1,1],[0,1,1,1,2,3,1,2],[2,1,1,1,1,0,0,0]], 1)
+
+D = Matrix([[1,1,1],[1,2,3],[1,2,4]], 1)
+
+print(D)
+print('')
+print(D.upper_triangle(1))
+
